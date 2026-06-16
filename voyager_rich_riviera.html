@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voyager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --cream:#F5EDE0;--cream2:#EDD9C3;--cream3:#D9BFA0;
+  --ink:#1C1018;--ink2:#4A3545;--ink3:#8A6E80;
+  --blue:#1F527A;--blue2:#2E72A8;--blue3:#C8DEF0;
+  --rose:#9E2E42;--rose2:#C94060;--rose3:#F5D0D8;
+  --plum:#4A2560;--plum2:#7040A0;--plum3:#E4D4F5;
+  --teal:#145C48;--teal2:#1E8060;--teal3:#C5E8DC;
+  --gold:#8A5010;--gold2:#C07820;--gold3:#F5E0B8;
+  --font-head:'Cormorant Garamond',Georgia,serif;
+  --font-body:'DM Sans',system-ui,sans-serif;
+  --radius:12px;--radius-sm:8px;
+}
+body{font-family:var(--font-body);background:var(--cream);color:var(--ink);min-height:100vh;font-size:15px;line-height:1.6}
+
+.nav{display:flex;align-items:center;justify-content:space-between;padding:16px 32px;background:var(--ink);position:sticky;top:0;z-index:100}
+.nav-logo{font-family:var(--font-head);font-size:28px;font-weight:600;font-style:italic;color:#fff;letter-spacing:0.03em}
+.nav-logo span{color:var(--gold2);font-style:normal}
+.nav-pill{font-size:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.16);border-radius:20px;padding:5px 14px;color:rgba(255,255,255,0.5)}
+
+.shell{display:grid;grid-template-columns:340px 1fr;min-height:calc(100vh - 57px)}
+.sidebar{background:#fff;border-right:1px solid var(--cream3);padding:28px 24px;display:flex;flex-direction:column;gap:20px;overflow-y:auto}
+.main{padding:28px 32px;overflow-y:auto;display:flex;flex-direction:column;gap:28px}
+
+.sidebar-section{display:flex;flex-direction:column;gap:10px}
+.sidebar-label{font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink3)}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:13px;color:var(--ink2);font-weight:500}
+input[type=text],input[type=date],select,textarea{
+  width:100%;padding:9px 12px;border:1px solid var(--cream3);border-radius:var(--radius-sm);
+  font-family:var(--font-body);font-size:14px;background:var(--cream);color:var(--ink);
+  outline:none;transition:border-color 0.15s;resize:vertical
+}
+input:focus,select:focus,textarea:focus{border-color:var(--blue2);background:#fff}
+textarea{min-height:80px}
+.date-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.interests-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.interest-chip{display:flex;align-items:center;gap:6px;font-size:13px;padding:7px 10px;border:1px solid var(--cream3);border-radius:var(--radius-sm);cursor:pointer;background:var(--cream);transition:all 0.15s;color:var(--ink2)}
+.interest-chip input{width:14px;height:14px;accent-color:var(--blue2)}
+.interest-chip:has(input:checked){background:var(--blue3);border-color:var(--blue2);color:var(--blue)}
+.btn-curate{width:100%;padding:13px;background:var(--ink);color:#fff;border:none;border-radius:var(--radius);font-family:var(--font-body);font-size:15px;font-weight:500;cursor:pointer;transition:all 0.2s;margin-top:4px}
+.btn-curate:hover{background:var(--blue)}
+.btn-curate:disabled{opacity:0.5;cursor:not-allowed}
+.btn-curate.loading{background:var(--ink2)}
+
+.status-bar{display:flex;align-items:center;gap:10px;padding:12px 16px;background:#fff;border-radius:var(--radius);border:1px solid var(--cream3);font-size:13px}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--cream3);flex-shrink:0;transition:background 0.3s}
+.status-dot.active{background:var(--blue2);animation:pulse 1.5s infinite}
+.status-dot.done{background:var(--teal2);animation:none}
+.status-dot.error{background:var(--rose2)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.status-label{font-weight:600;color:var(--ink)}
+.status-msg{color:var(--ink3)}
+
+.pref-strip{display:flex;flex-wrap:wrap;gap:7px;align-items:center}
+.eyebrow{font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink3)}
+.pref-strip .eyebrow{width:100%;margin-bottom:2px}
+.chip{font-size:12px;padding:4px 12px;border-radius:20px;background:var(--blue3);color:var(--blue);border:1px solid rgba(31,82,122,0.25);font-weight:500}
+.chip.gold{background:var(--gold3);color:var(--gold);border-color:rgba(138,80,16,0.25)}
+.chip.sky{background:var(--plum3);color:var(--plum);border-color:rgba(74,37,96,0.2)}
+
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:60px 32px;gap:12px;min-height:300px;background:#fff;border-radius:var(--radius);border:1px solid var(--cream3)}
+.empty-state .icon-wrap{font-family:var(--font-head);font-size:52px;font-style:italic;color:var(--cream3);margin-bottom:4px}
+.empty-state h2{font-family:var(--font-head);font-size:28px;color:var(--ink);font-weight:500}
+.empty-state p{color:var(--ink3);font-size:14px;max-width:340px;line-height:1.7}
+
+.section-heading{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:16px}
+.section-heading h2{font-family:var(--font-head);font-size:26px;color:var(--ink);font-weight:500}
+.date-badge{font-size:13px;color:var(--ink3);background:var(--cream);border:1px solid var(--cream3);border-radius:20px;padding:5px 14px}
+
+.flight-grid{display:grid;gap:10px}
+.flight-card{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:#fff;border:1px solid var(--cream3);border-radius:var(--radius);gap:16px;transition:border-color 0.2s}
+.flight-card:hover{border-color:var(--blue2)}
+.flight-card .route{font-weight:500;font-size:15px;color:var(--ink)}
+.flight-card .meta{font-size:13px;color:var(--ink3)}
+.flight-card .price{font-size:20px;font-family:var(--font-head);font-weight:600;color:var(--blue)}
+.flight-card .cabin-tag{font-size:12px;color:var(--ink3)}
+.btn-flight{padding:8px 16px;border:1px solid var(--cream3);border-radius:var(--radius-sm);background:var(--cream);color:var(--ink2);font-size:13px;font-weight:500;cursor:pointer;transition:all 0.15s;white-space:nowrap;font-family:var(--font-body)}
+.btn-flight:hover{background:var(--blue3);border-color:var(--blue2);color:var(--blue)}
+.fine-print{font-size:11px;color:var(--ink3);margin-top:8px;font-style:italic}
+
+.proposal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
+.proposal-card{background:#fff;border:1px solid var(--cream3);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column;transition:all 0.35s;opacity:0;transform:translateY(16px)}
+.proposal-card.entering{opacity:1;transform:translateY(0)}
+.proposal-card.selected{border-color:var(--blue2);box-shadow:0 0 0 2px rgba(46,114,168,0.18)}
+.proposal-media{height:160px;position:relative;display:flex;align-items:flex-end}
+.media-gradient{position:absolute;inset:0;background:linear-gradient(to top,rgba(28,16,24,0.55),transparent)}
+.proposal-badge{position:relative;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;background:rgba(255,255,255,0.94);color:var(--ink);padding:4px 10px;border-radius:20px;margin:10px}
+.proposal-body{padding:18px;display:flex;flex-direction:column;gap:12px;flex:1}
+.proposal-body h3{font-family:var(--font-head);font-size:22px;color:var(--ink);line-height:1.2;font-weight:500}
+.proposal-body .mood{font-size:13px;color:var(--ink3);line-height:1.6}
+.card-eyebrow{font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--gold2)}
+.detail-stack{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--cream3);padding-top:12px}
+.detail-row{display:flex;justify-content:space-between;font-size:13px;gap:8px}
+.detail-row span{color:var(--ink3);flex-shrink:0}
+.detail-row strong{color:var(--ink);text-align:right}
+.dinner-list{display:flex;flex-direction:column;gap:6px}
+.dinner-card{padding:8px 12px;background:var(--plum3);border-left:3px solid var(--plum2);border-top-left-radius:0;border-bottom-left-radius:0;border-radius:var(--radius-sm)}
+.dinner-card strong{display:block;font-size:13px;color:var(--plum)}
+.dinner-card span{font-size:12px;color:var(--ink3)}
+.exp-chips{display:flex;flex-wrap:wrap;gap:6px}
+.exp-chip{font-size:11px;padding:3px 10px;border-radius:20px;background:var(--teal3);color:var(--teal);border:1px solid rgba(20,92,72,0.22)}
+.feedback-bar{display:flex;gap:8px;margin-top:auto;padding-top:12px;border-top:1px solid var(--cream3)}
+.btn-approve{flex:1;padding:9px;background:var(--ink);color:#fff;border:none;border-radius:var(--radius-sm);font-family:var(--font-body);font-size:13px;font-weight:500;cursor:pointer;transition:background 0.15s}
+.btn-approve:hover{background:var(--blue)}
+.btn-refine{flex:1;padding:9px;background:var(--cream);color:var(--ink2);border:1px solid var(--cream3);border-radius:var(--radius-sm);font-family:var(--font-body);font-size:13px;cursor:pointer;transition:all 0.15s}
+.btn-refine:hover{background:var(--cream2)}
+
+.skeleton{background:linear-gradient(90deg,var(--cream2) 25%,var(--cream) 50%,var(--cream2) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:var(--radius-sm)}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.skel-card{height:380px;border-radius:var(--radius)}
+.skel-flight{height:60px;border-radius:var(--radius)}
+.proposals-loading{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
+
+.final-plan{background:#fff;border:1px solid var(--cream3);border-radius:var(--radius);overflow:hidden}
+.final-plan-header{padding:26px 30px;background:var(--ink);color:#fff}
+.final-plan-header .header-eyebrow{font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--gold2);margin-bottom:6px}
+.final-plan-header h2{font-family:var(--font-head);font-size:34px;font-weight:500;font-style:italic;margin-bottom:6px;color:#fff}
+.final-plan-header p{font-size:14px;color:rgba(255,255,255,0.6)}
+.approved-badge{display:inline-flex;align-items:center;gap:6px;background:var(--teal3);color:var(--teal);font-size:12px;font-weight:600;padding:5px 14px;border-radius:20px;margin:18px 28px 0}
+.day-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;padding:22px 28px 28px}
+.day-card{border:1px solid var(--cream3);border-radius:var(--radius-sm);overflow:hidden}
+.day-card h3{font-size:13px;font-weight:600;padding:10px 14px;background:var(--blue3);color:var(--blue)}
+.day-card ul{list-style:none;padding:10px 14px;display:flex;flex-direction:column;gap:6px}
+.day-card li{font-size:13px;color:var(--ink2);padding-left:14px;position:relative;line-height:1.5}
+.day-card li::before{content:'·';position:absolute;left:0;color:var(--ink3)}
+
+@media(max-width:800px){.shell{grid-template-columns:1fr}.sidebar{border-right:none;border-bottom:1px solid var(--cream3)}}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-logo">Voyager<span>.</span></div>
+  <span class="nav-pill">AI Trip Curator</span>
+</nav>
+
+<div class="shell">
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Where & When</div>
+      <div class="field"><label>From</label><input type="text" id="origin" placeholder="e.g. London, Munich"></div>
+      <div class="field"><label>Destination</label><input type="text" id="destination" placeholder="e.g. Tokyo, Lisbon"></div>
+      <div class="date-row">
+        <div class="field"><label>Depart</label><input type="date" id="departDate"></div>
+        <div class="field"><label>Return</label><input type="date" id="returnDate"></div>
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Travellers & Budget</div>
+      <div class="field"><label>Travellers</label>
+        <select id="travellers"><option>1 – Solo</option><option selected>2 – Couple</option><option>3–4 – Small group</option><option>5+ – Large group</option></select>
+      </div>
+      <div class="field"><label>Budget level</label>
+        <select id="budget"><option>Budget conscious</option><option selected>Mid-range</option><option>Luxury</option><option>Ultra-luxury</option></select>
+      </div>
+      <div class="field"><label>Cabin class</label>
+        <select id="cabin"><option selected>Economy</option><option>Premium Economy</option><option>Business</option><option>First</option></select>
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Trip Vibe</div>
+      <div class="interests-grid">
+        <label class="interest-chip"><input type="checkbox" name="interests" value="Culture"> Culture</label>
+        <label class="interest-chip"><input type="checkbox" name="interests" value="Food"> Food</label>
+        <label class="interest-chip"><input type="checkbox" name="interests" value="Nature"> Nature</label>
+        <label class="interest-chip"><input type="checkbox" name="interests" value="Adventure"> Adventure</label>
+        <label class="interest-chip"><input type="checkbox" name="interests" value="Wellness"> Wellness</label>
+        <label class="interest-chip"><input type="checkbox" name="interests" value="Shopping"> Shopping</label>
+        <label class="interest-chip"><input type="checkbox" name="interests" value="Nightlife"> Nightlife</label>
+        <label class="interest-chip"><input type="checkbox" name="interests" value="Photography"> Photography</label>
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Your Wishes</div>
+      <div class="field"><textarea id="wishes" placeholder="Describe the holiday feeling you want… rooftop dinners, hidden streets, slow mornings…"></textarea></div>
+    </div>
+    <button class="btn-curate" id="btnCurate">Curate my trip ✦</button>
+  </aside>
+
+  <main class="main">
+    <div class="status-bar">
+      <div class="status-dot" id="statusDot"></div>
+      <span class="status-label" id="statusLabel">Ready</span>
+      <span class="status-msg" id="statusMsg">Fill in your details and click Curate to begin.</span>
+    </div>
+    <div id="prefStrip" style="display:none"><div class="pref-strip" id="prefChips"></div></div>
+    <section id="flightSection" style="display:none">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow" style="margin-bottom:4px">Flights</p>
+          <h2 id="flightRoute">–</h2>
+        </div>
+        <span class="date-badge" id="flightDates">–</span>
+      </div>
+      <div id="flightGrid"></div>
+      <p class="fine-print">Sample estimates — a production build connects to live flight APIs and redirects to checkout.</p>
+    </section>
+    <section>
+      <div id="proposalArea">
+        <div class="empty-state">
+          <div class="icon-wrap">V</div>
+          <h2>Your trip will appear here.</h2>
+          <p>Enter a destination and some wishes, then hit Curate my trip. Voyager will craft three tailored routes with flights and dinner picks.</p>
+        </div>
+      </div>
+    </section>
+    <section id="finalSection" style="display:none">
+      <div class="final-plan">
+        <div class="final-plan-header">
+          <p class="header-eyebrow">Approved itinerary</p>
+          <h2 id="finalTitle">–</h2>
+          <p id="finalSummary">–</p>
+        </div>
+        <div class="approved-badge">✓ Itinerary approved</div>
+        <div class="day-grid" id="dayGrid"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+const btn=document.getElementById('btnCurate');
+const statusDot=document.getElementById('statusDot');
+const statusLabel=document.getElementById('statusLabel');
+const statusMsg=document.getElementById('statusMsg');
+const prefStrip=document.getElementById('prefStrip');
+const prefChips=document.getElementById('prefChips');
+const flightSection=document.getElementById('flightSection');
+const flightRoute=document.getElementById('flightRoute');
+const flightDates=document.getElementById('flightDates');
+const flightGrid=document.getElementById('flightGrid');
+const proposalArea=document.getElementById('proposalArea');
+const finalSection=document.getElementById('finalSection');
+const finalTitle=document.getElementById('finalTitle');
+const finalSummary=document.getElementById('finalSummary');
+const dayGrid=document.getElementById('dayGrid');
+let latestProposals=[];
+
+function setStatus(state,label,msg){statusDot.className='status-dot '+state;statusLabel.textContent=label;statusMsg.textContent=msg;}
+function esc(v){return String(v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function getFormData(){
+  const interests=[...document.querySelectorAll('input[name=interests]:checked')].map(c=>c.value);
+  return{origin:document.getElementById('origin').value.trim()||'Munich',destination:document.getElementById('destination').value.trim(),departDate:document.getElementById('departDate').value,returnDate:document.getElementById('returnDate').value,travellers:document.getElementById('travellers').value,budget:document.getElementById('budget').value,cabin:document.getElementById('cabin').value,wishes:document.getElementById('wishes').value.trim(),interests};
+}
+function showSkeletons(){
+  proposalArea.innerHTML=`<div class="proposals-loading">${[0,1,2].map(()=>`<div class="skeleton skel-card"></div>`).join('')}</div>`;
+  flightGrid.innerHTML=`<div style="display:flex;flex-direction:column;gap:8px">${[0,1,2].map(()=>`<div class="skeleton skel-flight"></div>`).join('')}</div>`;
+}
+
+async function curate(){
+  const data=getFormData();
+  if(!data.destination&&!data.wishes){setStatus('','Waiting','Add a destination or describe your dream trip to begin.');return;}
+  btn.disabled=true;btn.textContent='Curating…';btn.classList.add('loading');
+  setStatus('active','Curating','Building three tailored routes from your wishes…');
+  showSkeletons();flightSection.style.display='block';finalSection.style.display='none';
+
+  const prompt=`You are a luxury travel curator AI. Generate a complete trip curation for this brief:
+Origin: ${data.origin}
+Destination: ${data.destination||'Surprise me'}
+Depart: ${data.departDate||'Flexible'}
+Return: ${data.returnDate||'Flexible'}
+Travellers: ${data.travellers}
+Budget: ${data.budget}
+Cabin: ${data.cabin}
+Interests: ${data.interests.join(', ')||'General'}
+Wishes: ${data.wishes||'A wonderful holiday'}
+
+Respond ONLY with a JSON object (no markdown, no backticks) with this exact structure:
+{"profile":{"origin":string,"destination":string,"departDate":string,"returnDate":string,"budgetTier":string,"comfortStyle":string,"cabinClass":string,"dinnerMood":string,"tripInterests":string[]},"flights":[{"route":string,"airline":string,"timing":string,"price":string,"cabin":string,"handoff":string}],"proposals":[{"id":"p1","title":string,"mood":string,"pace":"leisurely"|"balanced"|"action-packed","estimate":string,"budgetLabel":string,"comfortLabel":string,"interestLabel":string,"dinnerLabel":string,"fit":string,"hotel":{"name":string,"area":string},"restaurants":[{"name":string}],"dinners":[{"name":string,"format":string,"why":string}],"experiences":[{"title":string}],"dayPlan":[{"day":string,"title":string,"items":string[]}]}]}
+Generate exactly 3 proposals with distinct moods/paces. 3 flight options. dayPlan min 3 days. Be vivid and specific.`;
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:3000,messages:[{role:'user',content:prompt}]})});
+    if(!res.ok)throw new Error('API error');
+    const apiData=await res.json();
+    const raw=apiData.content.map(b=>b.text||'').join('');
+    const result=JSON.parse(raw.replace(/```json|```/g,'').trim());
+    latestProposals=result.proposals;
+    renderPrefStrip(result.profile);renderFlights(result.flights,result.profile);renderProposals(result.proposals);
+    setStatus('done','Ready',`${result.proposals.length} curated routes for ${result.profile.destination}.`);
+  }catch(e){
+    setStatus('error','Error','Could not generate trip — please try again.');
+    proposalArea.innerHTML=`<div class="empty-state"><div class="icon-wrap">!</div><h2>Something went wrong.</h2><p>Please check your details and try again.</p></div>`;
+    flightSection.style.display='none';
+  }finally{btn.disabled=false;btn.textContent='Curate my trip ✦';btn.classList.remove('loading');}
+}
+
+function renderPrefStrip(p){
+  const items=[{label:p.budgetTier,type:''},{label:p.comfortStyle,type:''},{label:p.cabinClass,type:'sky'},{label:p.dinnerMood,type:'gold'},...(p.tripInterests||[]).map(i=>({label:i,type:''}))].filter(i=>i.label);
+  prefChips.innerHTML=`<p class="eyebrow">Live brief</p>`+items.map(i=>`<span class="chip ${i.type}">${esc(i.label)}</span>`).join('');
+  prefStrip.style.display='block';
+}
+
+function renderFlights(flights,profile){
+  flightRoute.textContent=`${profile.origin} → ${profile.destination}`;
+  flightDates.textContent=`${profile.departDate||'–'} · ${profile.returnDate||'–'}`;
+  flightGrid.innerHTML=flights.map(f=>`
+    <div class="flight-card">
+      <div><div class="route">${esc(f.route)}</div><div class="meta">${esc(f.airline)} · ${esc(f.timing)}</div></div>
+      <div><div class="price">${esc(f.price)}</div><div class="cabin-tag">${esc(f.cabin)}</div></div>
+      <button class="btn-flight" onclick="setStatus('','Flight','In production this opens the airline booking page with your route pre-filled.')">Check fares →</button>
+    </div>`).join('');
+}
+
+function renderProposals(proposals){
+  const mediaColors={leisurely:['#7B9EBE','#3D5A80'],balanced:['#B8A0CC','#7B5EA7'],'action-packed':['#C4778A','#9B3048']};
+  proposalArea.innerHTML=`<div class="proposal-grid">${proposals.map(p=>{
+    const [c1,c2]=(mediaColors[p.pace]||mediaColors.balanced);
+    const dinners=(p.dinners||[]).map(d=>`<div class="dinner-card"><strong>${esc(d.name)}</strong><span>${esc(d.format)} · ${esc(d.why)}</span></div>`).join('');
+    const exps=(p.experiences||[]).map(e=>`<span class="exp-chip">${esc(e.title)}</span>`).join('');
+    const restaurants=(p.restaurants||[]).map(r=>r.name).join(', ');
+    return`<article class="proposal-card" id="${p.id}">
+      <div class="proposal-media" style="background:linear-gradient(140deg,${c1},${c2})">
+        <div class="media-gradient"></div>
+        <span class="proposal-badge">${esc(p.pace)} pace</span>
+      </div>
+      <div class="proposal-body">
+        <div><p class="card-eyebrow">${esc(p.estimate)}</p><h3>${esc(p.title)}</h3></div>
+        <p class="mood">${esc(p.mood)}</p>
+        <div class="detail-stack">
+          <div class="detail-row"><span>Hotel</span><strong>${esc(p.hotel?.name)} · ${esc(p.hotel?.area)}</strong></div>
+          <div class="detail-row"><span>Dining</span><strong>${esc(restaurants)}</strong></div>
+          <div class="detail-row"><span>Budget</span><strong>${esc(p.budgetLabel)} · ${esc(p.comfortLabel)}</strong></div>
+          <div class="detail-row"><span>Focus</span><strong>${esc(p.interestLabel)}</strong></div>
+          <div class="detail-row"><span>Why</span><strong>${esc(p.fit)}</strong></div>
+        </div>
+        ${dinners?`<div class="dinner-list">${dinners}</div>`:''}
+        ${exps?`<div class="exp-chips">${exps}</div>`:''}
+        <div class="feedback-bar">
+          <button class="btn-approve" data-approve="${p.id}">Approve</button>
+          <button class="btn-refine" data-refine="Please refine '${p.title}' — more relaxed, more visual, more tailored.">Refine</button>
+        </div>
+      </div>
+    </article>`;
+  }).join('')}</div>`;
+
+  requestAnimationFrame(()=>{
+    proposalArea.querySelectorAll('.proposal-card').forEach((c,i)=>{
+      c.style.transitionDelay=`${i*80}ms`;
+      requestAnimationFrame(()=>c.classList.add('entering'));
+    });
+  });
+  proposalArea.querySelectorAll('[data-approve]').forEach(b=>b.addEventListener('click',()=>{const p=latestProposals.find(x=>x.id===b.dataset.approve);if(p)approveProposal(p);}));
+  proposalArea.querySelectorAll('[data-refine]').forEach(b=>b.addEventListener('click',()=>{const w=document.getElementById('wishes');w.value=(w.value.trim()?w.value.trim()+'\n':'')+b.dataset.refine;curate();}));
+}
+
+function approveProposal(p){
+  proposalArea.querySelectorAll('.proposal-card').forEach(c=>c.classList.toggle('selected',c.id===p.id));
+  finalTitle.textContent=p.title;
+  finalSummary.textContent=`${p.hotel?.name} as the base · ${p.estimate} · ${p.budgetLabel?.toLowerCase()} budget · dinner curated for ${p.dinnerLabel?.toLowerCase()||'the vibe'}.`;
+  dayGrid.innerHTML=(p.dayPlan||[]).map(day=>`<div class="day-card"><h3>${esc(day.day)} · ${esc(day.title)}</h3><ul>${(day.items||[]).map(i=>`<li>${esc(i)}</li>`).join('')}</ul></div>`).join('');
+  finalSection.style.display='block';
+  finalSection.scrollIntoView({behavior:'smooth',block:'start'});
+  setStatus('done','Approved','Itinerary approved — ready for booking and concierge review.');
+}
+
+btn.addEventListener('click',curate);
+document.getElementById('destination').addEventListener('keydown',e=>{if(e.key==='Enter')curate();});
+</script>
+</body>
+</html>
