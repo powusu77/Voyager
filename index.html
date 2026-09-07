@@ -264,33 +264,17 @@ async function curate(){
   setStatus('active','Curating','Building three tailored routes from your wishes…');
   showSkeletons();flightSection.style.display='block';finalSection.style.display='none';
 
-  const prompt=`You are a luxury travel curator AI. Generate a complete trip curation for this brief:
-Origin: ${data.origin}
-Destination: ${data.destination||'Surprise me'}
-Depart: ${data.departDate||'Flexible'}
-Return: ${data.returnDate||'Flexible'}
-Travellers: ${data.travellers}
-Budget: ${data.budget}
-Cabin: ${data.cabin}
-Interests: ${data.interests.join(', ')||'General'}
-Wishes: ${data.wishes||'A wonderful holiday'}
-
-Respond ONLY with a JSON object (no markdown, no backticks) with this exact structure:
-{"profile":{"origin":string,"destination":string,"departDate":string,"returnDate":string,"budgetTier":string,"comfortStyle":string,"cabinClass":string,"dinnerMood":string,"tripInterests":string[]},"flights":[{"route":string,"airline":string,"timing":string,"price":string,"cabin":string,"handoff":string}],"proposals":[{"id":"p1","title":string,"mood":string,"pace":"leisurely"|"balanced"|"action-packed","estimate":string,"budgetLabel":string,"comfortLabel":string,"interestLabel":string,"dinnerLabel":string,"fit":string,"hotel":{"name":string,"area":string},"restaurants":[{"name":string}],"dinners":[{"name":string,"format":string,"why":string}],"experiences":[{"title":string}],"dayPlan":[{"day":string,"title":string,"items":string[]}]}]}
-Generate exactly 3 proposals with distinct moods/paces. 3 flight options. dayPlan min 3 days. Be vivid and specific.`;
 
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:3000,messages:[{role:'user',content:prompt}]})});
-    if(!res.ok)throw new Error('API error');
-    const apiData=await res.json();
-    const raw=apiData.content.map(b=>b.text||'').join('');
-    const result=JSON.parse(raw.replace(/```json|```/g,'').trim());
+    const res=await fetch('/api/curate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    const result=await res.json();
+    if(!res.ok)throw new Error(result.detail||result.error||`Request failed (${res.status})`);
     latestProposals=result.proposals;
     renderPrefStrip(result.profile);renderFlights(result.flights,result.profile);renderProposals(result.proposals);
     setStatus('done','Ready',`${result.proposals.length} curated routes for ${result.profile.destination}.`);
   }catch(e){
-    setStatus('error','Error','Could not generate trip — please try again.');
-    proposalArea.innerHTML=`<div class="empty-state"><div class="icon-wrap">!</div><h2>Something went wrong.</h2><p>Please check your details and try again.</p></div>`;
+    setStatus('error','Error',e.message||'Could not generate trip.');
+    proposalArea.innerHTML=`<div class="empty-state"><div class="icon-wrap">!</div><h2>Something went wrong.</h2><p>${esc(e.message||'Please check your details and try again.')}</p></div>`;
     flightSection.style.display='none';
   }finally{btn.disabled=false;btn.textContent='Curate my trip ✦';btn.classList.remove('loading');}
 }
