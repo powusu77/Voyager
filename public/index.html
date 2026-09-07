@@ -42,6 +42,8 @@ input[type=text],input[type=date],select,textarea{
 }
 input:focus,select:focus,textarea:focus{border-color:var(--blue2);background:#fff}
 textarea{min-height:80px}
+input[type=date]{-webkit-appearance:none;appearance:none;min-height:42px}
+input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
 .date-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .date-row .field,.date-row input{min-width:0}
 .interests-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
@@ -136,6 +138,7 @@ textarea{min-height:80px}
 .day-card li::before{content:'·';position:absolute;left:0;color:var(--ink3)}
 
 @media(max-width:800px){.shell{grid-template-columns:1fr}.sidebar{border-right:none;border-bottom:1px solid var(--cream3)}}
+@media(hover:none) and (pointer:coarse){input[type=text],input[type=date],select,textarea{font-size:16px}}
 </style>
 </head>
 <body>
