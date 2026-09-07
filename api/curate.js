@@ -1,22 +1,38 @@
-// Server-side endpoint for the trip curation request.
+// Trip curation endpoint.
 //
-// The browser must never hold the AI provider key, so the page posts the raw
-// form data here; this function builds the prompt, calls the provider with the
-// credentials attached, and returns the parsed trip object. The key lives only
-// in a Vercel environment variable and is never sent to the client.
+// The browser must never hold the AI provider key, so the page posts the form
+// data here. This function builds the prompt, calls the provider with the
+// credentials attached, and returns the parsed trip object.
 //
-// Configuration (Vercel environment variables):
-//   AI_API_KEY   (required) provider API key
-//   AI_BASE_URL  (optional) defaults to Moonshot / Kimi
-//   AI_MODEL     (optional) defaults to kimi-k2.6
+// Environment variables (set in Vercel, never committed):
+//   AI_API_KEY   required, provider API key
+//   AI_BASE_URL  optional, defaults to Moonshot / Kimi
+//   AI_MODEL     optional, defaults to kimi-k2.6
 //
-// The provider is configurable so it can be changed without a code change.
+// Base URL and model are configurable so the provider can be changed without
+// editing code.
 
 const API_BASE = process.env.AI_BASE_URL || 'https://api.moonshot.ai/v1';
 const API_MODEL = process.env.AI_MODEL || 'kimi-k2.6';
 
-function str(v, max) {
-  return typeof v === 'string' ? v.trim().slice(0, max) : '';
+// Kept below the 60s function limit in vercel.json so a slow provider still
+// returns a handled response instead of being killed by the platform.
+const UPSTREAM_TIMEOUT_MS = 45000;
+
+const UNAVAILABLE =
+  'Trip curation is temporarily unavailable. Please try again in a little while.';
+const UNREADABLE =
+  'We could not put an itinerary together this time. Please try again.';
+
+// Visitors get a plain sentence; the technical reason goes to the function log.
+// Provider messages can contain account identifiers, so they are never returned.
+function fail(res, status, message, logDetail) {
+  if (logDetail) console.error('[curate]', status, logDetail);
+  return res.status(status).json({ error: message, retryable: status !== 400 });
+}
+
+function str(value, max) {
+  return typeof value === 'string' ? value.trim().slice(0, max) : '';
 }
 
 function buildPrompt(d) {
@@ -42,23 +58,21 @@ Generate exactly 3 proposals with distinct moods/paces. 3 flight options. dayPla
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed.' });
+    res.setHeader('Allow', 'POST');
+    return fail(res, 405, 'Method not allowed.');
   }
 
   const key = process.env.AI_API_KEY;
   if (!key) {
-    return res.status(500).json({
-      error: 'Trip service is not configured.',
-      detail: 'The server is missing its AI provider key.'
-    });
+    return fail(res, 503, UNAVAILABLE, 'AI_API_KEY is not set.');
   }
 
   const data = req.body && typeof req.body === 'object' ? req.body : null;
   if (!data) {
-    return res.status(400).json({ error: 'Invalid request body.' });
+    return fail(res, 400, 'Something looked wrong with that request. Please try again.');
   }
   if (!str(data.destination, 120) && !str(data.wishes, 1200)) {
-    return res.status(400).json({ error: 'Add a destination or describe your dream trip.' });
+    return fail(res, 400, 'Add a destination, or describe the trip you have in mind.');
   }
 
   let upstream;
@@ -75,49 +89,37 @@ module.exports = async (req, res) => {
         temperature: 0.7,
         response_format: { type: 'json_object' },
         messages: [{ role: 'user', content: buildPrompt(data) }]
-      })
+      }),
+      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS)
     });
-  } catch (e) {
-    return res.status(502).json({
-      error: 'Could not reach the trip service.',
-      detail: 'The AI provider did not respond.'
-    });
+  } catch (error) {
+    const reason = error && error.name === 'TimeoutError' ? 'timed out' : 'unreachable';
+    return fail(res, 503, UNAVAILABLE, `Provider ${reason}.`);
   }
 
   const payload = await upstream.json().catch(() => null);
 
   if (!upstream.ok) {
-    // Surface the provider's own reason (no credit, bad key, unknown model)
-    // so failures are diagnosable, without echoing the credential.
-    const detail = (payload && payload.error && payload.error.message) || `Upstream error ${upstream.status}.`;
-    return res.status(upstream.status === 429 ? 429 : 502).json({
-      error: 'The trip service is unavailable right now.',
-      detail
-    });
+    const reason = (payload && payload.error && payload.error.message) || `status ${upstream.status}`;
+    return fail(res, 503, UNAVAILABLE, `Provider ${upstream.status}: ${reason}`);
   }
 
-  const raw =
-    payload && payload.choices && payload.choices[0] && payload.choices[0].message
-      ? payload.choices[0].message.content || ''
-      : '';
+  const message = payload && payload.choices && payload.choices[0] && payload.choices[0].message;
+  const raw = message && typeof message.content === 'string' ? message.content : '';
 
   let result;
   try {
     result = JSON.parse(raw.replace(/```json|```/g, '').trim());
-  } catch (e) {
-    return res.status(502).json({
-      error: 'The trip service returned an unreadable response.',
-      detail: 'Response was not valid JSON.'
-    });
+  } catch {
+    return fail(res, 502, UNREADABLE, 'Provider response was not valid JSON.');
   }
 
   if (!result || !result.profile || !Array.isArray(result.proposals) || !result.proposals.length) {
-    return res.status(502).json({
-      error: 'The trip service returned an incomplete itinerary.',
-      detail: 'Missing profile or proposals.'
-    });
+    return fail(res, 502, UNREADABLE, 'Provider response was missing profile or proposals.');
   }
-  if (!Array.isArray(result.flights)) result.flights = [];
+  if (!Array.isArray(result.flights)) {
+    result.flights = [];
+  }
 
   return res.status(200).json(result);
 };

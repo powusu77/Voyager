@@ -245,6 +245,7 @@ const finalTitle=document.getElementById('finalTitle');
 const finalSummary=document.getElementById('finalSummary');
 const dayGrid=document.getElementById('dayGrid');
 let latestProposals=[];
+const UNAVAILABLE='Trip curation is temporarily unavailable. Please try again in a little while.';
 
 function setStatus(state,label,msg){statusDot.className='status-dot '+state;statusLabel.textContent=label;statusMsg.textContent=msg;}
 function esc(v){return String(v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
@@ -267,14 +268,18 @@ async function curate(){
 
   try{
     const res=await fetch('/api/curate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
-    const result=await res.json();
-    if(!res.ok)throw new Error(result.detail||result.error||`Request failed (${res.status})`);
+    const result=await res.json().catch(()=>({}));
+    if(!res.ok){const err=new Error(result.error||UNAVAILABLE);err.userMessage=result.error||UNAVAILABLE;err.retryable=result.retryable!==false;throw err;}
     latestProposals=result.proposals;
     renderPrefStrip(result.profile);renderFlights(result.flights,result.profile);renderProposals(result.proposals);
     setStatus('done','Ready',`${result.proposals.length} curated routes for ${result.profile.destination}.`);
   }catch(e){
-    setStatus('error','Error',e.message||'Could not generate trip.');
-    proposalArea.innerHTML=`<div class="empty-state"><div class="icon-wrap">!</div><h2>Something went wrong.</h2><p>${esc(e.message||'Please check your details and try again.')}</p></div>`;
+    const msg=(e&&e.userMessage)?e.userMessage:UNAVAILABLE;
+    const canRetry=!e||e.retryable!==false;
+    setStatus('error',canRetry?'Paused':'Check details',msg);
+    proposalArea.innerHTML=`<div class="empty-state"><div class="icon-wrap">V</div><h2>${canRetry?'Back shortly.':'Almost there.'}</h2><p>${esc(msg)}</p>${canRetry?`<button class="btn-curate" id="btnRetry" style="max-width:200px">Try again</button>`:''}</div>`;
+    const retry=document.getElementById('btnRetry');
+    if(retry)retry.addEventListener('click',curate);
     flightSection.style.display='none';
   }finally{btn.disabled=false;btn.textContent='Curate my trip ✦';btn.classList.remove('loading');}
 }
