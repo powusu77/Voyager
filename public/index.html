@@ -27,7 +27,7 @@ body{font-family:var(--font-body);background:var(--cream);color:var(--ink);min-h
 .nav-logo span{color:var(--gold2);font-style:normal}
 .nav-pill{font-size:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.16);border-radius:20px;padding:5px 14px;color:rgba(255,255,255,0.5)}
 
-.shell{display:grid;grid-template-columns:340px 1fr;min-height:calc(100vh - 57px)}
+.shell{display:grid;grid-template-columns:380px 1fr;min-height:calc(100vh - 57px)}
 .sidebar{background:#fff;border-right:1px solid var(--cream3);padding:28px 24px;display:flex;flex-direction:column;gap:20px;overflow-y:auto}
 .main{padding:28px 32px;overflow-y:auto;display:flex;flex-direction:column;gap:28px}
 
@@ -43,6 +43,7 @@ input[type=text],input[type=date],select,textarea{
 input:focus,select:focus,textarea:focus{border-color:var(--blue2);background:#fff}
 textarea{min-height:80px}
 .date-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.date-row .field,.date-row input{min-width:0}
 .interests-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .interest-chip{display:flex;align-items:center;gap:6px;font-size:13px;padding:7px 10px;border:1px solid var(--cream3);border-radius:var(--radius-sm);cursor:pointer;background:var(--cream);transition:all 0.15s;color:var(--ink2)}
 .interest-chip input{width:14px;height:14px;accent-color:var(--blue2)}
