@@ -15,9 +15,10 @@
 const API_BASE = process.env.AI_BASE_URL || 'https://api.moonshot.ai/v1';
 const API_MODEL = process.env.AI_MODEL || 'kimi-k2.6';
 
-// Kept below the 60s function limit in vercel.json so a slow provider still
-// returns a handled response instead of being killed by the platform.
-const UPSTREAM_TIMEOUT_MS = 45000;
+// A full curation measures around 90 seconds against kimi-k2.6. Kept below the
+// function limit in vercel.json so a slow provider still returns a handled
+// response instead of being killed by the platform.
+const UPSTREAM_TIMEOUT_MS = 150000;
 
 const UNAVAILABLE =
   'Trip curation is temporarily unavailable. Please try again in a little while.';
@@ -86,8 +87,11 @@ module.exports = async (req, res) => {
       body: JSON.stringify({
         model: API_MODEL,
         max_tokens: 8000,
-        temperature: 0.7,
         response_format: { type: 'json_object' },
+        // kimi-k2.6 reasons before answering. Left on, it spends the whole
+        // token budget thinking and returns empty content, so the itinerary
+        // never arrives. Disabling it is required, not an optimisation.
+        thinking: { type: 'disabled' },
         messages: [{ role: 'user', content: buildPrompt(data) }]
       }),
       signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS)
